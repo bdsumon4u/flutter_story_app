@@ -1,115 +1,138 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(PictureStoryApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
+class PictureStoryApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Picture Story Time',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: StoryLibraryScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class StoryLibraryScreen extends StatelessWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Story Library'),
+      ),
+      body: ListView.builder(
+        itemCount: storyList.length,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () {
+              // Navigate to the story viewer screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StoryViewerScreen(story: storyList[index]),
+                ),
+              );
+            },
+            child: Container(
+              padding: EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Image.asset(
+                    storyList[index].coverImage,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
+                  SizedBox(width: 16.0),
+                  Text(
+                    storyList[index].title,
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class StoryViewerScreen extends StatefulWidget {
+  StoryViewerScreen({ super.key, required this.story });
+  final Story story;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  FlutterTts flutterTts = FlutterTts();
+
+  @override
+  State<StoryViewerScreen> createState() => _StoryViewerScreen();
+}
+
+class _StoryViewerScreen extends State<StoryViewerScreen> {
+  bool playing = false;
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text(widget.story.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      body: SingleChildScrollView(
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+          children: [
+            Image.asset(
+              widget.story.coverImage,
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                widget.story.content,
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Implement interactive elements or read-aloud functionality
+                if (playing) {
+                  await widget.flutterTts.pause();
+                } else {
+                  await widget.flutterTts.speak(widget.story.content);
+                }
+                setState(() {
+                  playing = !playing;
+                });
+              },
+              child: Text(playing ? 'Pause' : 'Read Aloud'),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
+
+class Story {
+  final String title;
+  final String coverImage;
+  final String content;
+
+  Story({required this.title, required this.coverImage, required this.content});
+}
+
+// Dummy data
+List<Story> storyList = [
+  Story(
+    title: 'The Adventure of Alex',
+    coverImage: 'assets/rose-book.jpg',
+    content: "Alex is a young adventure seeker always on the look out for new outdoors experiences and meeting new animal friends along the way to help him get through his adventures. Alex is informed by his mother Laura to look out for rip tides while playing in the ocean. A rip tied is a strong underwater current that can carry a person out to sea In a matter of seconds. While swimming, Alex meets Jose a dolphin on vacation from Mexico swimming north up the coast, Jose informed Alex he's caught in a rip tide and to recall the advise Laura his mother gave him about how to get out of the rip tide if caught in it. Alex remembered to swim sideways to the shore until he is out of the riptide. This allows Alex to swim out of the rip tide and safely return to shore where his mother is waiting to take him home. Finally on his way home Alex already starts to think of what adventure he wants to experience next weekend.",
+  ),
+  // Add more stories here
+];
